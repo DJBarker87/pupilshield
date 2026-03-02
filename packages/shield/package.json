@@ -1,0 +1,20 @@
+{
+  "name": "@djb/shield",
+  "version": "0.1.0",
+  "description": "Anonymisation library for UK school student data",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "keywords": ["anonymisation", "privacy", "education", "uk-schools"],
+  "license": "UNLICENSED",
+  "private": true
+}

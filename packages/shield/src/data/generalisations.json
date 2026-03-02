@@ -1,0 +1,62 @@
+{
+  "SEN": {
+    "EHCP": "SEN: Yes",
+    "EHC plan": "SEN: Yes",
+    "School Action Plus": "SEN: Yes",
+    "School Action": "SEN: Yes",
+    "SA+": "SEN: Yes",
+    "SA": "SEN: Yes",
+    "K": "SEN: Yes",
+    "E": "SEN: Yes",
+    "SEN Support": "SEN: Yes",
+    "No SEN": "SEN: No",
+    "None": "SEN: No",
+    "N": "SEN: No"
+  },
+  "PP": {
+    "FSM": "Disadvantaged: Yes",
+    "Pupil Premium": "Disadvantaged: Yes",
+    "PP": "Disadvantaged: Yes",
+    "FSM6": "Disadvantaged: Yes",
+    "Ever 6 FSM": "Disadvantaged: Yes",
+    "Service Child": "Disadvantaged: Yes",
+    "Yes": "Disadvantaged: Yes",
+    "No": "Disadvantaged: No",
+    "N": "Disadvantaged: No"
+  },
+  "LAC": {
+    "Looked After Child": "Additional support: Yes",
+    "LAC": "Additional support: Yes",
+    "Previously LAC": "Additional support: Yes",
+    "PLAC": "Additional support: Yes",
+    "Child Protection Plan": "Additional support: Yes",
+    "CPP": "Additional support: Yes",
+    "Child in Need": "Additional support: Yes",
+    "CIN": "Additional support: Yes",
+    "No": "Additional support: No",
+    "N": "Additional support: No"
+  },
+  "EAL": {
+    "EAL": "Additional support: Yes",
+    "Yes": "Additional support: Yes",
+    "A": "Additional support: Yes",
+    "B": "Additional support: Yes",
+    "C": "Additional support: Yes",
+    "D": "Additional support: Yes",
+    "E": "Additional support: Yes",
+    "N": "Additional support: No",
+    "No": "Additional support: No"
+  },
+  "medical": {
+    "ADHD": "Medical: Yes",
+    "Autism": "Medical: Yes",
+    "ASD": "Medical: Yes",
+    "Dyslexia": "Medical: Yes",
+    "Dyspraxia": "Medical: Yes",
+    "Epilepsy": "Medical: Yes",
+    "Diabetes": "Medical: Yes",
+    "Asthma": "Medical: Yes",
+    "No": "Medical: No",
+    "None": "Medical: No"
+  }
+}

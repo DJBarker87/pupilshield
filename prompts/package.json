@@ -1,0 +1,19 @@
+{
+  "name": "@djb/prompts",
+  "version": "0.1.0",
+  "description": "Prompt template system for PupilSafe AI",
+  "type": "module",
+  "main": "engine.js",
+  "exports": {
+    ".": "./engine.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

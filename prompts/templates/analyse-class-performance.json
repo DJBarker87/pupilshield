@@ -1,0 +1,61 @@
+{
+  "id": "analyse-class-performance",
+  "name": "Analyse Class Performance",
+  "description": "Identify trends, outliers, and intervention groups from anonymised class data. Returns structured JSON for easy review.",
+  "tier": "free",
+  "outputFormat": "json",
+  "deanonymiseStrategy": "json",
+  "questions": [
+    {
+      "id": "subject",
+      "label": "Subject",
+      "type": "text",
+      "placeholder": "e.g. Year 10 Maths",
+      "required": true
+    },
+    {
+      "id": "focus",
+      "label": "Analysis focus",
+      "type": "dropdown",
+      "options": ["trends", "intervention", "outliers", "groups"],
+      "required": true
+    },
+    {
+      "id": "context",
+      "label": "Additional context",
+      "type": "text",
+      "placeholder": "e.g. Recent mock exam results, focus on PP students",
+      "required": false
+    }
+  ],
+  "jsonSchema": {
+    "type": "object",
+    "properties": {
+      "groups": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Group label, e.g. 'Needs intervention'" },
+            "students": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string", "description": "Student ID token, e.g. [S01]" },
+                  "name": { "type": "string", "description": "Full fake name" },
+                  "reason": { "type": "string", "description": "Why this student is in this group" }
+                },
+                "required": ["id", "name", "reason"]
+              }
+            },
+            "recommendation": { "type": "string", "description": "Suggested action for this group" }
+          },
+          "required": ["name", "students", "recommendation"]
+        }
+      },
+      "summary": { "type": "string", "description": "Overall summary of the analysis" }
+    },
+    "required": ["groups", "summary"]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "write-report-comments",
+  "name": "Write Report Comments",
+  "description": "Generate individual report comments for each student based on their anonymised data.",
+  "tier": "free",
+  "outputFormat": "prose",
+  "deanonymiseStrategy": "id-first",
+  "questions": [
+    {
+      "id": "subject",
+      "label": "Subject",
+      "type": "text",
+      "placeholder": "e.g. Year 9 English",
+      "required": true
+    },
+    {
+      "id": "tone",
+      "label": "Tone",
+      "type": "dropdown",
+      "options": ["formal", "encouraging", "targets"],
+      "required": true
+    },
+    {
+      "id": "wordCount",
+      "label": "Approximate word count per comment",
+      "type": "dropdown",
+      "options": ["50", "100", "150"],
+      "required": true
+    }
+  ]
+}

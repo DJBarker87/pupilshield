@@ -1,0 +1,31 @@
+{
+  "id": "generate-differentiated-questions",
+  "name": "Generate Differentiated Questions",
+  "description": "Create tiered questions at multiple difficulty levels, tailored to student groups in the class data.",
+  "tier": "free",
+  "outputFormat": "prose",
+  "deanonymiseStrategy": "id-first",
+  "questions": [
+    {
+      "id": "subjectAndTopic",
+      "label": "Subject and topic",
+      "type": "text",
+      "placeholder": "e.g. GCSE Biology — Photosynthesis",
+      "required": true
+    },
+    {
+      "id": "difficultyLevels",
+      "label": "Number of difficulty levels",
+      "type": "dropdown",
+      "options": ["2", "3"],
+      "required": true
+    },
+    {
+      "id": "questionsPerLevel",
+      "label": "Questions per level",
+      "type": "dropdown",
+      "options": ["3", "5"],
+      "required": true
+    }
+  ]
+}
