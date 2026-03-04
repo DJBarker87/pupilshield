@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { pipeline } from '$lib/state.svelte';
 
 	let copied = $state(false);
+	let extensionDetected = $state(false);
+	let promptSent = $state(false);
 
 	async function copyPrompt() {
 		try {
@@ -29,6 +32,29 @@
 	function goBack() {
 		pipeline.currentStep = 'prompt';
 	}
+
+	function sendToAI() {
+		window.dispatchEvent(new CustomEvent('PUPILSAFE_SEND_PROMPT', {
+			detail: { prompt: pipeline.prompt }
+		}));
+		promptSent = true;
+		setTimeout(() => promptSent = false, 3000);
+	}
+
+	onMount(() => {
+		const handleExtensionReady = () => { extensionDetected = true; };
+		window.addEventListener('PUPILSAFE_EXTENSION_READY', handleExtensionReady);
+
+		const handleResponse = (event: CustomEvent) => {
+			pipeline.aiResponse = event.detail.response;
+		};
+		window.addEventListener('PUPILSAFE_RESPONSE_RECEIVED', handleResponse as EventListener);
+
+		return () => {
+			window.removeEventListener('PUPILSAFE_EXTENSION_READY', handleExtensionReady);
+			window.removeEventListener('PUPILSAFE_RESPONSE_RECEIVED', handleResponse as EventListener);
+		};
+	});
 </script>
 
 <div class="split-view">
@@ -38,9 +64,14 @@
 		<div class="panel">
 			<div class="panel-header">
 				<h3>Your prompt</h3>
-				<button class="btn btn-sm btn-primary" onclick={copyPrompt}>
-					{copied ? 'Copied!' : 'Copy prompt'}
-				</button>
+				<div class="header-actions">
+					{#if extensionDetected}
+						<span class="extension-badge">Extension connected</span>
+					{/if}
+					<button class="btn btn-sm btn-primary" onclick={copyPrompt}>
+						{copied ? 'Copied!' : 'Copy prompt'}
+					</button>
+				</div>
 			</div>
 			<pre class="prompt-text">{pipeline.prompt}</pre>
 
@@ -50,13 +81,21 @@
 				<a href="https://claude.ai" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Claude</a>
 				<a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">Gemini</a>
 			</div>
+
+			{#if extensionDetected}
+				<button class="btn btn-primary extension-send-btn" onclick={sendToAI}>
+					{promptSent ? 'Sent!' : 'Send to AI'}
+				</button>
+			{/if}
 		</div>
 
 		<div class="panel">
 			<div class="panel-header">
 				<h3>AI response</h3>
 			</div>
+			<label for="ai-response" class="sr-only">AI response</label>
 			<textarea
+				id="ai-response"
 				class="textarea response-area"
 				bind:value={pipeline.aiResponse}
 				placeholder="Paste the AI's response here..."
@@ -141,6 +180,26 @@
 		display: flex;
 		gap: var(--space-3);
 		justify-content: flex-end;
+	}
+
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.extension-badge {
+		font-size: var(--text-xs);
+		color: var(--color-success, #22c55e);
+		font-weight: 500;
+		padding: 2px 8px;
+		border: 1px solid var(--color-success, #22c55e);
+		border-radius: var(--radius-full, 9999px);
+	}
+
+	.extension-send-btn {
+		margin-top: var(--space-2);
+		width: 100%;
 	}
 
 	@media (max-width: 768px) {

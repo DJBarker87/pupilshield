@@ -103,6 +103,23 @@ function getFirstNameList(gender, genderMode) {
 }
 
 /**
+ * Normalise a name from "Surname, Firstname" to "Firstname Surname" format.
+ * If the name doesn't contain a comma, returns it unchanged.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+function normaliseNameOrder(name) {
+  if (typeof name !== 'string') return name;
+  const commaIndex = name.indexOf(',');
+  if (commaIndex === -1) return name;
+  const before = name.slice(0, commaIndex).trim();
+  const after = name.slice(commaIndex + 1).trim();
+  if (before && after) return `${after} ${before}`;
+  return name;
+}
+
+/**
  * Anonymise names in data rows, replacing real names with fake names and ID tokens.
  *
  * PRNG consumption order: one call for first name index, one for surname index, per student.
@@ -136,7 +153,8 @@ export function anonymiseNames(rows, nameColIndex, prng, options = {}) {
 
   for (let i = 0; i < rows.length; i++) {
     const row = [...rows[i]];
-    const realName = row[nameColIndex];
+    const rawName = row[nameColIndex];
+    const realName = normaliseNameOrder(rawName);
     const idNum = i + 1;
     const idStr = idNum < 10 ? `0${idNum}` : `${idNum}`;
     const idToken = `S${idStr}`;
@@ -155,7 +173,7 @@ export function anonymiseNames(rows, nameColIndex, prng, options = {}) {
 
     const fakeName = `${firstName} ${surname}`;
 
-    // Store mapping
+    // Store mapping — always "Firstname Surname" order for clean report output
     mapping.ids[idToken] = realName;
     mapping.names[fakeName] = realName;
     mapping.nameToId[fakeName] = idToken;

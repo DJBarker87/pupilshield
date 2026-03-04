@@ -47,8 +47,32 @@ function escapeRegex(s) {
 }
 
 /**
+ * Build an expanded name map that includes "Last, First" reversed variants.
+ * For each "First Last" → "Real" entry, adds "Last, First" → "Real" so
+ * AI-reordered names (surname-first) are caught.
+ *
+ * @param {Object} namesMap  fake→real mapping
+ * @returns {Object} Expanded map including reversed variants
+ */
+function expandWithReversedNames(namesMap) {
+  const expanded = { ...namesMap };
+  for (const fakeName of Object.keys(namesMap)) {
+    const parts = fakeName.split(/\s+/);
+    if (parts.length === 2) {
+      const reversed = `${parts[1]}, ${parts[0]}`;
+      // Only add if not already present (don't overwrite explicit entries)
+      if (!(reversed in expanded)) {
+        expanded[reversed] = namesMap[fakeName];
+      }
+    }
+  }
+  return expanded;
+}
+
+/**
  * Replace all fake names in a string using boundary-aware, case-insensitive matching.
  * Longest names are replaced first to prevent partial matches.
+ * Also matches "Surname, Firstname" reversed variants.
  * Canonical-case replacement is always used (the real name in its stored casing).
  *
  * @param {string} text
@@ -59,19 +83,28 @@ function globalNameReplace(text, namesMap) {
   let result = text;
   let count = 0;
 
-  // Sort fake names longest-first to prevent partial matches
-  const fakeNames = Object.keys(namesMap).sort((a, b) => b.length - a.length);
+  // Expand map with "Last, First" reversed variants
+  const expandedMap = expandWithReversedNames(namesMap);
 
+  // Sort fake names longest-first to prevent partial matches
+  const fakeNames = Object.keys(expandedMap).sort((a, b) => b.length - a.length);
+
+  if (fakeNames.length === 0) return { text: result, count };
+
+  // Build single alternation regex from all fake names
+  const pattern = fakeNames.map(n => escapeRegex(n)).join('|');
+  const regex = new RegExp(`(?<!\\w)(${pattern})(?!\\w)`, 'gi');
+
+  // Build a case-insensitive lookup map
+  const lowerMap = {};
   for (const fakeName of fakeNames) {
-    const realName = namesMap[fakeName];
-    const escaped = escapeRegex(fakeName);
-    // Build a regex that matches the fake name (case-insensitive) at word boundaries
-    const regex = new RegExp(`(?<![\\w])${escaped}(?![\\w])`, 'gi');
-    result = result.replace(regex, () => {
-      count++;
-      return realName;
-    });
+    lowerMap[fakeName.toLowerCase()] = expandedMap[fakeName];
   }
+
+  result = result.replace(regex, (match) => {
+    count++;
+    return lowerMap[match.toLowerCase()] ?? match;
+  });
 
   return { text: result, count };
 }
@@ -86,8 +119,17 @@ const ID_PATTERN = /\[S\d{2,3}\]/g;
  * Captures: (fake name) ([SXX])
  */
 function buildFakeNameIdPattern(fakeNames) {
+  // Include "Last, First" reversed variants alongside "First Last" originals
+  const allVariants = [];
+  for (const name of fakeNames) {
+    allVariants.push(name);
+    const parts = name.split(/\s+/);
+    if (parts.length === 2) {
+      allVariants.push(`${parts[1]}, ${parts[0]}`);
+    }
+  }
   // Sort longest first
-  const sorted = [...fakeNames].sort((a, b) => b.length - a.length);
+  const sorted = allVariants.sort((a, b) => b.length - a.length);
   const escaped = sorted.map(n => escapeRegex(n));
   // Match fake name (case-insensitive) followed by optional space and [SXX]
   return new RegExp(`(?<![\\w])(${escaped.join('|')})\\s*(\\[S\\d{2,3}\\])`, 'gi');
