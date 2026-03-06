@@ -13,6 +13,7 @@
 	};
 
 	let sensitiveModal = $state<{ index: number; name: string; label: string } | null>(null);
+	let modalRef = $state<HTMLDivElement | null>(null);
 
 	// Check for unreviewed sensitive columns
 	let hasSensitiveColumns = $derived(
@@ -26,6 +27,34 @@
 	let canProceed = $derived(
 		unreviewedSensitive.length === 0
 	);
+
+	// Focus trap for sensitive column modal
+	$effect(() => {
+		if (sensitiveModal && modalRef) {
+			document.body.style.overflow = 'hidden';
+			const focusable = modalRef.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+			if (focusable.length > 0) focusable[0].focus();
+
+			const handleKeydown = (e: KeyboardEvent) => {
+				if (e.key !== 'Tab' || !modalRef) return;
+				const focusableEls = modalRef.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+				const first = focusableEls[0];
+				const last = focusableEls[focusableEls.length - 1];
+				if (e.shiftKey) {
+					if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+				} else {
+					if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+				}
+			};
+			document.addEventListener('keydown', handleKeydown);
+			return () => {
+				document.body.style.overflow = '';
+				document.removeEventListener('keydown', handleKeydown);
+			};
+		} else if (!sensitiveModal) {
+			document.body.style.overflow = '';
+		}
+	});
 
 	function getEffectiveType(col: { index: number; type: string }): string {
 		return pipeline.columnOverrides[col.index]?.type ?? col.type;
@@ -123,6 +152,7 @@
 						<td>
 							<select
 								class="select type-select"
+								aria-label="Column type for {col.name}"
 								value={getEffectiveType(col)}
 								onchange={(e) => handleTypeChange(col.index, (e.target as HTMLSelectElement).value)}
 							>
@@ -159,7 +189,7 @@
 {#if sensitiveModal}
 	<div class="modal-backdrop" onclick={() => sensitiveModal = null} role="presentation">
 		<!-- svelte-ignore a11y_interactive_supports_focus a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-		<div class="modal card" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') sensitiveModal = null; }} role="dialog" tabindex="-1" aria-label="Sensitive column options">
+		<div class="modal card" bind:this={modalRef} onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') sensitiveModal = null; }} role="dialog" tabindex="-1" aria-label="Sensitive column options">
 			<h3>Sensitive column: {sensitiveModal.name}</h3>
 			<p>This column appears to contain personally identifiable information. What would you like to do?</p>
 			<div class="modal-actions">

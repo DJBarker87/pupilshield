@@ -23,11 +23,11 @@
 			<h3>Two privacy modes</h3>
 			<div class="modes-grid">
 				<div>
-					<h4>Accurate</h4>
+					<h4>Names Only</h4>
 					<p>Names changed. Scores unchanged. Best for report writing and detailed analysis where exact marks matter.</p>
 				</div>
 				<div>
-					<h4>Anonymous</h4>
+					<h4>Names + Noise</h4>
 					<p>Names changed + statistical noise added to scores. Scores stay within grade bands. Best for sensitive data, small cohorts, and EHCP/LAC columns.</p>
 				</div>
 			</div>

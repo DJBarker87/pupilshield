@@ -16,7 +16,7 @@
 		{ id: 'output', label: 'Output' },
 	];
 
-	let { current }: { current: PipelineStep } = $props();
+	let { current, onNavigate }: { current: PipelineStep; onNavigate?: (step: PipelineStep) => void } = $props();
 
 	function stepIndex(id: PipelineStep) {
 		return STEPS.findIndex(s => s.id === id);
@@ -34,16 +34,27 @@
 				class:upcoming={i > currentIdx}
 				aria-current={i === currentIdx ? 'step' : undefined}
 			>
-				<span class="step-dot">
-					{#if i < currentIdx}
-						<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-							<path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-					{:else}
-						{i + 1}
-					{/if}
-				</span>
-				<span class="step-label">{step.label}</span>
+				{#if i < currentIdx && onNavigate}
+					<button class="step-btn" onclick={() => onNavigate(step.id)} type="button">
+						<span class="step-dot">
+							<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+								<path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</span>
+						<span class="step-label">{step.label}</span>
+					</button>
+				{:else}
+					<span class="step-dot">
+						{#if i < currentIdx}
+							<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+								<path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						{:else}
+							{i + 1}
+						{/if}
+					</span>
+					<span class="step-label">{step.label}</span>
+				{/if}
 			</li>
 		{/each}
 	</ol>
@@ -115,5 +126,20 @@
 
 	.upcoming .step-label {
 		color: var(--color-text-light);
+	}
+
+	.step-btn {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		font: inherit;
+	}
+
+	.step-btn:hover .step-label {
+		text-decoration: underline;
 	}
 </style>

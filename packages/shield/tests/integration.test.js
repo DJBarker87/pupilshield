@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { Shield } from '../src/index.js';
+import { mulberry32 } from '../src/prng.js';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import prngFixture from '../../../test-fixtures/prng-sequence-seed42.json' with { type: 'json' };
+import anonymisedFixture from '../../../test-fixtures/anonymised-seed42.json' with { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const sampleCSV = readFileSync(resolve(__dirname, '../../../test-fixtures/sample-dataset.csv'), 'utf-8');
@@ -513,6 +516,45 @@ describe('buildBlockedTokens — accepts flag objects with .value', () => {
     const blocked = buildBlockedTokens(rows, 0, flags);
     expect(blocked.has('emily')).toBe(true);
     expect(blocked.has('henderson')).toBe(true);
+  });
+});
+
+describe('shared fixture validation', () => {
+  it('should produce identical PRNG sequence for seed=42', () => {
+    const prng = mulberry32(42);
+    for (let i = 0; i < prngFixture.length; i++) {
+      const val = prng();
+      expect(val).toBeCloseTo(prngFixture[i], 10);
+    }
+  });
+
+  it('should produce identical anonymised output for seed=42', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const csv = fs.readFileSync(
+      path.resolve(import.meta.dirname, '../../../test-fixtures/sample-dataset.csv'),
+      'utf-8'
+    );
+
+    const shield = new Shield({ mode: 'accurate', seed: 42, gender: 'aware' });
+    const result = shield.anonymise(csv);
+
+    // Validate headers match
+    expect(result.anonymised.headers).toEqual(anonymisedFixture.headers);
+
+    // Validate row count
+    expect(result.anonymised.rows.length).toBe(anonymisedFixture.rows.length);
+
+    // Validate each row matches
+    for (let i = 0; i < anonymisedFixture.rows.length; i++) {
+      expect(result.anonymised.rows[i]).toEqual(anonymisedFixture.rows[i]);
+    }
+
+    // Validate mapping matches
+    expect(result.mapping.ids).toEqual(anonymisedFixture.mapping.ids);
+    expect(result.mapping.names).toEqual(anonymisedFixture.mapping.names);
+    expect(result.mapping.nameToId).toEqual(anonymisedFixture.mapping.nameToId);
+    expect(result.mapping.idToFake).toEqual(anonymisedFixture.mapping.idToFake);
   });
 });
 

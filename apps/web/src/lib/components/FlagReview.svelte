@@ -49,8 +49,11 @@
 			<h3>What to look for</h3>
 			<ul>
 				<li>Student or staff names mentioned in comments</li>
-				<li>Medical conditions, safeguarding terms, family details</li>
+				<li>Medical conditions, diagnoses, or medication references</li>
+				<li>Safeguarding or child protection language</li>
+				<li>Family details (parent names, custody, home circumstances)</li>
 				<li>Dates, postcodes, phone numbers, email addresses</li>
+				<li>Any other personally identifiable information</li>
 			</ul>
 		</div>
 

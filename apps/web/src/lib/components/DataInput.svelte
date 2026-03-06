@@ -98,7 +98,9 @@ Isla MacLeod,F,No,No,No,64,92,Needs to revise key terminology before the exam`;
 	<p class="hint">Paste a CSV from your MIS export, spreadsheet, or marksheet. Each row should be one student.</p>
 
 	<div class="input-area">
+		<label for="csv-input" class="sr-only">CSV data</label>
 		<textarea
+			id="csv-input"
 			class="textarea"
 			bind:value={textValue}
 			placeholder="Name,Gender,SEN,PP,Score (%),Attendance (%),Comments&#10;James Chen,M,No,No,72,94,Good progress this term&#10;..."

@@ -70,12 +70,12 @@ Aisha would benefit from...</pre>
 		<h2>Built for UK secondary schools</h2>
 		<div class="features-grid">
 			<div class="feature">
-				<h3>GDPR compliant</h3>
-				<p>No student data leaves your browser. No server, no database, no logs. Works offline after first load.</p>
+				<h3>Designed for data protection</h3>
+				<p>No student data leaves your browser. No server, no database, no logs. Helps you comply with GDPR.</p>
 			</div>
 			<div class="feature">
 				<h3>Two privacy modes</h3>
-				<p>Accurate mode changes names only. Anonymous mode also adds statistical noise — ideal for sensitive cohorts or small groups.</p>
+				<p>Names Only mode changes names only. Names + Noise mode also adds statistical noise — ideal for sensitive cohorts or small groups.</p>
 			</div>
 			<div class="feature">
 				<h3>Works with any AI</h3>

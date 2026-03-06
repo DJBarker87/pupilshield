@@ -81,33 +81,34 @@ function scanNames(text, knownNames, staffNames) {
   // Track matched positions to avoid duplicates
   const matchedPositions = new Set();
 
-  for (const { pattern } of uniqueParts) {
-    const regex = buildWordBoundaryRegex(pattern);
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-      const pos = match.index;
-      const matchEnd = pos + match[0].length;
+  // Build single alternation regex from all name parts (longest first)
+  if (uniqueParts.length === 0) return flags;
+  const escaped = uniqueParts.map(np => np.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const combinedRegex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
 
-      // Check if this position range overlaps with any existing flag
-      let isDuplicate = false;
-      for (const existingPos of matchedPositions) {
-        const [eStart, eEnd] = existingPos.split(':').map(Number);
-        // Overlap check: this match is contained within an existing one
-        if (pos >= eStart && matchEnd <= eEnd) {
-          isDuplicate = true;
-          break;
-        }
-      }
+  let match;
+  while ((match = combinedRegex.exec(text)) !== null) {
+    const pos = match.index;
+    const matchEnd = pos + match[0].length;
 
-      if (!isDuplicate) {
-        matchedPositions.add(`${pos}:${matchEnd}`);
-        flags.push({
-          type: 'name',
-          value: match[0],
-          position: pos,
-          context: extractContext(text, pos, matchEnd),
-        });
+    // Check if this position range overlaps with any existing flag
+    let isDuplicate = false;
+    for (const existingPos of matchedPositions) {
+      const [eStart, eEnd] = existingPos.split(':').map(Number);
+      if (pos >= eStart && matchEnd <= eEnd) {
+        isDuplicate = true;
+        break;
       }
+    }
+
+    if (!isDuplicate) {
+      matchedPositions.add(`${pos}:${matchEnd}`);
+      flags.push({
+        type: 'name',
+        value: match[0],
+        position: pos,
+        context: extractContext(text, pos, matchEnd),
+      });
     }
   }
 
@@ -126,25 +127,25 @@ function scanKeywords(text, keywords) {
 
   for (const category of categories) {
     const terms = keywords[category];
-    if (!terms || !Array.isArray(terms)) continue;
+    if (!terms || !Array.isArray(terms) || terms.length === 0) continue;
 
     // Sort longest first to match multi-word phrases before single words
     const sorted = [...terms].sort((a, b) => b.length - a.length);
 
-    for (const term of sorted) {
-      const regex = buildWordBoundaryRegex(term);
-      let match;
-      while ((match = regex.exec(text)) !== null) {
-        const pos = match.index;
-        const matchEnd = pos + match[0].length;
-        flags.push({
-          type: 'keyword',
-          subtype: category,
-          value: match[0],
-          position: pos,
-          context: extractContext(text, pos, matchEnd),
-        });
-      }
+    // Build one alternation regex for the whole category
+    const pattern = sorted.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const pos = match.index;
+      const matchEnd = pos + match[0].length;
+      flags.push({
+        type: 'keyword',
+        subtype: category,
+        value: match[0],
+        position: pos,
+        context: extractContext(text, pos, matchEnd),
+      });
     }
   }
 

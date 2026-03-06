@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { pipeline } from '$lib/state.svelte';
+	import { pipeline, type ColumnType } from '$lib/state.svelte';
 	import { Shield } from '@djb/shield';
 
 	let showNudge = $state(false);
 	let nudgeType = $state<'sensitive' | 'small-cohort' | null>(null);
+	let modalRef = $state<HTMLDivElement | null>(null);
 
 	// Check for sensitive columns that suggest anonymous mode
 	let hasSensitiveCategories = $derived(
@@ -13,9 +14,63 @@
 		})
 	);
 
+	let hasMedicalSafeguarding = $derived(
+		pipeline.detected.some(c => {
+			const name = c.name.toLowerCase();
+			return /ehcp|lac|safeguard|medical/i.test(name);
+		})
+	);
+
+	type RiskLevel = 'low' | 'medium' | 'high';
+
+	let riskLevel = $derived.by((): RiskLevel => {
+		const cohortSize = pipeline.parsedData?.rows.length ?? 0;
+		if (cohortSize < 12 || hasMedicalSafeguarding) return 'high';
+		if (cohortSize < 20 || hasSensitiveCategories) return 'medium';
+		return 'low';
+	});
+
+	let genderAcknowledged = $state(false);
+
 	let isSmallCohort = $derived(
 		(pipeline.parsedData?.rows.length ?? 0) < 15
 	);
+
+	// Default high-risk cohorts to gender-neutral
+	$effect(() => {
+		if (riskLevel === 'high') {
+			pipeline.genderMode = 'neutral';
+			genderAcknowledged = true;
+		}
+	});
+
+	// Focus trap for nudge modal
+	$effect(() => {
+		if (showNudge && modalRef) {
+			document.body.style.overflow = 'hidden';
+			const focusable = modalRef.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+			if (focusable.length > 0) focusable[0].focus();
+
+			const handleKeydown = (e: KeyboardEvent) => {
+				if (e.key !== 'Tab' || !modalRef) return;
+				const focusableEls = modalRef.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+				const first = focusableEls[0];
+				const last = focusableEls[focusableEls.length - 1];
+				if (e.shiftKey) {
+					if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+				} else {
+					if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+				}
+			};
+			document.addEventListener('keydown', handleKeydown);
+			return () => {
+				document.body.style.overflow = '';
+				document.removeEventListener('keydown', handleKeydown);
+			};
+		} else if (!showNudge) {
+			document.body.style.overflow = '';
+		}
+	});
 
 	function selectMode(mode: 'accurate' | 'anonymous') {
 		pipeline.mode = mode;
@@ -41,7 +96,22 @@
 		proceed();
 	}
 
+	function removeSensitiveColumns() {
+		const overrides = { ...pipeline.columnOverrides };
+		for (const col of pipeline.detected) {
+			if (col.sensitive) {
+				overrides[col.index] = { type: 'identifier' as ColumnType, action: 'remove' };
+			}
+		}
+		pipeline.columnOverrides = overrides;
+		showNudge = false;
+		pipeline.currentStep = 'columns';
+	}
+
 	function proceed() {
+		if (riskLevel === 'high' && pipeline.genderMode === 'aware' && !genderAcknowledged) {
+			return; // Don't proceed until acknowledged
+		}
 		runAnonymisation();
 	}
 
@@ -113,7 +183,7 @@
 
 	{#if isSmallCohort}
 		<div class="banner banner-warning">
-			Small cohort ({pipeline.parsedData?.rows.length} students). Anonymous mode is recommended to reduce re-identification risk.
+			Small cohort ({pipeline.parsedData?.rows.length} students). Names + Noise mode is recommended to reduce re-identification risk.
 		</div>
 	{/if}
 
@@ -123,8 +193,8 @@
 			class:selected={pipeline.mode === 'accurate'}
 			onclick={() => selectMode('accurate')}
 		>
-			<h3>Accurate</h3>
-			<p>Names changed, scores exact</p>
+			<h3>Names Only</h3>
+			<p>Scores stay exact</p>
 			<ul>
 				<li>Real names replaced with fake names</li>
 				<li>Scores and percentages unchanged</li>
@@ -137,8 +207,8 @@
 			class:selected={pipeline.mode === 'anonymous'}
 			onclick={() => selectMode('anonymous')}
 		>
-			<h3>Anonymous</h3>
-			<p>Names changed + statistical noise</p>
+			<h3>Names + Noise</h3>
+			<p>Scores shifted slightly</p>
 			<ul>
 				<li>Real names replaced with fake names</li>
 				<li>Scores shifted by small random amounts</li>
@@ -149,24 +219,76 @@
 
 	<div class="gender-toggle">
 		<span class="label">Gender handling</span>
-		<div class="toggle-row">
-			<button
-				class="btn btn-sm"
-				class:btn-primary={pipeline.genderMode === 'aware'}
-				class:btn-secondary={pipeline.genderMode !== 'aware'}
-				onclick={() => pipeline.genderMode = 'aware'}
-			>
-				Gender-aware names
-			</button>
-			<button
-				class="btn btn-sm"
-				class:btn-primary={pipeline.genderMode === 'neutral'}
-				class:btn-secondary={pipeline.genderMode !== 'neutral'}
-				onclick={() => pipeline.genderMode = 'neutral'}
-			>
-				Gender-neutral (they/them)
-			</button>
-		</div>
+		{#if riskLevel === 'high'}
+			<div class="banner banner-warning" style="margin-bottom: var(--space-3);">
+				High-risk cohort (small group or sensitive categories). Gender-neutral names are strongly recommended to reduce re-identification risk.
+			</div>
+			<div class="toggle-row">
+				<button
+					class="btn btn-sm"
+					class:btn-primary={pipeline.genderMode === 'aware'}
+					class:btn-secondary={pipeline.genderMode !== 'aware'}
+					onclick={() => { pipeline.genderMode = 'aware'; genderAcknowledged = false; }}
+				>
+					Gender-aware names
+				</button>
+				<button
+					class="btn btn-sm"
+					class:btn-primary={pipeline.genderMode === 'neutral'}
+					class:btn-secondary={pipeline.genderMode !== 'neutral'}
+					onclick={() => { pipeline.genderMode = 'neutral'; genderAcknowledged = true; }}
+				>
+					Gender-neutral (they/them)
+				</button>
+			</div>
+			{#if pipeline.genderMode === 'aware'}
+				<label class="acknowledge-check">
+					<input type="checkbox" bind:checked={genderAcknowledged} />
+					I understand gender-aware names increase re-identification risk for this cohort
+				</label>
+			{/if}
+		{:else if riskLevel === 'medium'}
+			<div class="banner banner-info" style="margin-bottom: var(--space-3);">
+				Consider gender-neutral names for this cohort size to reduce re-identification risk.
+			</div>
+			<div class="toggle-row">
+				<button
+					class="btn btn-sm"
+					class:btn-primary={pipeline.genderMode === 'aware'}
+					class:btn-secondary={pipeline.genderMode !== 'aware'}
+					onclick={() => pipeline.genderMode = 'aware'}
+				>
+					Gender-aware names
+				</button>
+				<button
+					class="btn btn-sm"
+					class:btn-primary={pipeline.genderMode === 'neutral'}
+					class:btn-secondary={pipeline.genderMode !== 'neutral'}
+					onclick={() => pipeline.genderMode = 'neutral'}
+				>
+					Gender-neutral (they/them)
+				</button>
+			</div>
+		{:else}
+			<div class="toggle-row">
+				<button
+					class="btn btn-sm"
+					class:btn-primary={pipeline.genderMode === 'aware'}
+					class:btn-secondary={pipeline.genderMode !== 'aware'}
+					onclick={() => pipeline.genderMode = 'aware'}
+				>
+					Gender-aware names
+				</button>
+				<button
+					class="btn btn-sm"
+					class:btn-primary={pipeline.genderMode === 'neutral'}
+					class:btn-secondary={pipeline.genderMode !== 'neutral'}
+					onclick={() => pipeline.genderMode = 'neutral'}
+				>
+					Gender-neutral (they/them)
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	<div class="actions">
@@ -178,14 +300,15 @@
 {#if showNudge}
 	<div class="modal-backdrop" onclick={() => showNudge = false} role="presentation">
 		<!-- svelte-ignore a11y_interactive_supports_focus a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-		<div class="modal card" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showNudge = false; }} role="dialog" tabindex="-1" aria-label="Privacy mode nudge">
+		<div class="modal card" bind:this={modalRef} onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showNudge = false; }} role="dialog" tabindex="-1" aria-label="Privacy mode nudge">
 			{#if nudgeType === 'sensitive'}
 				<h3>Sensitive data detected</h3>
-				<p>Your data appears to include EHCP, LAC, or safeguarding columns. Anonymous mode adds statistical noise to reduce re-identification risk.</p>
+				<p>Your data appears to include EHCP, LAC, or safeguarding columns. Names + Noise mode adds statistical noise to reduce re-identification risk.</p>
 			{/if}
 			<div class="modal-actions">
-				<button class="btn btn-primary" onclick={switchToAnonymous}>Switch to Anonymous</button>
-				<button class="btn btn-secondary" onclick={confirmMode}>Continue in Accurate</button>
+				<button class="btn btn-primary" onclick={switchToAnonymous}>Switch to Names + Noise</button>
+				<button class="btn btn-secondary" onclick={removeSensitiveColumns}>Remove sensitive columns</button>
+				<button class="btn btn-secondary" onclick={confirmMode}>Continue in Names Only</button>
 			</div>
 		</div>
 	</div>
@@ -218,6 +341,11 @@
 	.banner-warning {
 		background: var(--color-warning-light);
 		color: var(--color-warning);
+	}
+
+	.banner-info {
+		background: var(--color-primary-bg);
+		color: var(--color-primary);
 	}
 
 	.mode-cards {
@@ -285,6 +413,20 @@
 	.toggle-row {
 		display: flex;
 		gap: var(--space-2);
+	}
+
+	.acknowledge-check {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-2);
+		font-size: var(--text-sm);
+		color: var(--color-text-muted);
+		cursor: pointer;
+		margin-top: var(--space-3);
+	}
+
+	.acknowledge-check input {
+		margin-top: 0.2em;
 	}
 
 	.actions {

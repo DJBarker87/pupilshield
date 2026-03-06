@@ -24,7 +24,7 @@ import { detectColumns } from './columns.js';
  */
 function sanitiseCell(val) {
   if (typeof val !== 'string') return val;
-  if (/^[=+\-@]/.test(val)) return `'${val}`;
+  if (/^[=+\-@\t\r\n]/.test(val)) return `'${val}`;
   return val;
 }
 
