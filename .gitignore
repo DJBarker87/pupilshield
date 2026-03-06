@@ -1,0 +1,14 @@
+node_modules
+.DS_Store
+Thumbs.db
+__pycache__
+*.pyc
+*.egg-info
+.pytest_cache
+*.zip
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+!.env.test
